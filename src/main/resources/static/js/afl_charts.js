@@ -231,6 +231,14 @@ class AflChart{
 		this.chart.update();
 		
 	}
+
+	startChartRefreshing(){
+		var self = this;
+		this.#refreshChart(this.getRequestParameters());
+		var intervalId = window.setInterval(function(){
+			self.#refreshChart(self.getRequestParameters());
+		}, self.step_ms);
+	}
 }
 
 
