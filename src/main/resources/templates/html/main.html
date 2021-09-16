@@ -1,94 +1,171 @@
 <html xmlns:th="http://www.w3.org/1999/xhtml">
-  <head>
+<head>
     <!-- Required meta tags -->
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>afl monitor</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>afl monitor</title>
 
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>	
-	<script type="text/javascript" th:src="@{/js/afl_charts.js}"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="text/javascript" th:src="@{/js/afl_charts.js}"></script>
     <script type="text/javascript" th:src="@{/js/charts_list.js}"></script>
-      <script>
-         let requests_date_format = "[[${requests_date_format}]]";
+    <script>
+        let requests_date_format = "[[${requests_date_format}]]";
     </script>
 
-	<!--script src="/js/afl_charts.js"></script>
-	<script src="/js/charts_list.js"></script-->
+    <!--script src="/js/afl_charts.js"></script>
+    <script src="/js/charts_list.js"></script-->
+    <script>
+        let alert_audio = new Audio("sounds/pik-pik.wav");
 
+        function showSabreLog(logs) {
+            $('textarea#sabre_pl_log').text(logs);
+            if (logs != undefined && (logs.indexOf("error: DBD") >= 0 || logs.indexOf("Got DBI error") >= 0 || logs.indexOf("FATAL") >= 0)) {
+                $('textarea#sabre_pl_log').css("color", "#44de5e");
+                $('textarea#sabre_pl_log').css("background-color", "#e62936");
 
-	<script>
-	    $(document).ready(function(){
-		createAndStartCharts();
-	     });
-	</script>
-  </head>
-  <body>
-	<div class="ontainer-fluid" id="main_container" style="width:100%" >
-<div id="accordion">
-  <div class="card">
-    <div class="card-header" id="headingOne">
-      <h5 class="mb-0">
-        <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-          Общая статистика вызовов
-        </button>
-      </h5>
-    </div>
+                $('#alert').modal("show");
+                if ($('#play_audio').is(':checked')) {
+                    alert_audio.play();
+                }
+            } else {
+                $('textarea#sabre_pl_log').css("color", "#44de5e");
+                $('textarea#sabre_pl_log').css("background-color", "#1c2d22");
+            }
+        };
 
-    <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" >
-      <div class="card-body">
-		<div class="row" style="width:100%">
-			<div class="border col" id="calls_stats_block" >
-				<div class="collapse multi-collapse" id="calls_stats_block">
-				</div>
-			</div>
-		</div>
-	 </div>
-    </div>
-  </div>
+        function loadSabreLog() {
+            $.ajax({
+                type: 'post',
+                async: false,
+                url: location.pathname + "custom_metrics/get-sabre-log",
+                success: function (response) {
+                    showSabreLog(response);
+                }
+            });
+        };
 
-  <div class="card">
-    <div class="card-header" id="headingTwo">
-      <h5 class="mb-0">
-        <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-          Суммарная статистика вызовов
-        </button>
-      </h5>
-    </div>
-    <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" >
-      <div class="card-body">
-		<div class="row" style="width:100%">
-			<div class="border col-8" id="calls_agg_st_block" >
-			</div>
-			<div class="border col-4" id="calls_eait_time_block" >
-			</div>
-		</div>                                                  
-	 </div>
-    </div>
+        function refreshSabreLogs(interval) {
+            $("#close_alert").click(function () {
+                alert_audio.pause();
+            });
+            var intervalId = window.setInterval(function () {
+                loadSabreLog();
+            }, interval);
+        }
+    </script>
+    <script>
+        $(document).ready(function () {
+            createAndStartCharts();
+            refreshSabreLogs(30000);
 
-  <div class="card">
-    <div class="card-header" id="headingTwo">
-      <h5 class="mb-0">
-        <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapsePlan" aria-expanded="false" aria-controls="collapsePlan">
-          План вызовов за день
-        </button>
-      </h5>
-    </div>
-    <div id="collapsePlan" class="collapse" aria-labelledby="headingTwo" >
-      <div class="card-body">
-		<div class="row" style="width:100%">
-			<div class="border col" id="calls_plan" >
-			</div>
-		</div>                                                  
-	 </div>
-    </div>
+        });
+    </script>
+</head>
+<body>
+<div class="ontainer-fluid" id="main_container" style="width:100%">
+    <div id="accordion">
+        <div class="card">
+            <div class="card-header" id="headingOne">
+                <h5 class="mb-0">
+                    <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                        Общая статистика вызовов
+                    </button>
+                </h5>
+            </div>
 
+            <div id="collapseOne" class="collapse show" aria-labelledby="headingOne">
+                <div class="card-body">
+                    <div class="row" style="width:100%">
+                        <div class="border col" id="calls_stats_block">
+                            <div class="collapse multi-collapse" id="calls_stats_block">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-  </div>
-</div>
-	</div>
-  </body>
+        <div class="card">
+            <div class="card-header" id="heading_1">
+                <h5 class="mb-0">
+                    <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                        Суммарная статистика вызовов
+                    </button>
+                </h5>
+            </div>
+            <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo">
+                <div class="card-body">
+                    <div class="row" style="width:100%">
+                        <div class="border col-8" id="calls_agg_st_block">
+                        </div>
+                        <div class="border col-4" id="calls_eait_time_block">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" id="heading_2">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapsePlan" aria-expanded="false" aria-controls="collapsePlan">
+                            План вызовов за день
+                        </button>
+                    </h5>
+                </div>
+                <div id="collapsePlan" class="collapse" aria-labelledby="headingTwo">
+                    <div class="card-body">
+                        <div class="row" style="width:100%">
+                            <div class="border col" id="calls_plan">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" id="heading_3">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseSabreLog" aria-expanded="false" aria-controls="collapseSabreLog">
+                            Лог SABRE.PL
+                        </button>
+                    </h5>
+                    <div class="col-2 custom-control custom-switch" >
+                        <input type="checkbox" class="custom-control-input" id="play_audio" checked="">
+                        <label class="custom-control-label" for="play_audio" style="color: #4b904b;">оповещать со звуком</label>
+                    </div>
+                </div>
+                <div id="collapseSabreLog" class="collapse" aria-labelledby="headingTwo">
+                    <div class="card-body">
+                        <div class="row" style="width:100%">
+                            <div class="border col">
+                                <div class="md-form mb-4 pink-textarea active-pink-textarea">
+                                    <textarea id="sabre_pl_log" class="md-textarea form-control" rows="20"></textarea>
+                                    <label for="sabre_pl_log">last log from Sabre.pl</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="alert" role="dialog">
+                <div class="modal-dialog">
+                    <!-- Modal content-->
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <p id="error">ВНИМАНИЕ! В логах Sabre.pl обнаружена ошибка</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="close_alert" type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+</body>
 </html>

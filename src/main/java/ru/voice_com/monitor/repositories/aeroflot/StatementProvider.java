@@ -4,13 +4,29 @@ public class StatementProvider {
 
     public static String callsDailyPlan(){
         //language=PostgreSQL
-        return "SELECT \n" +
+        return "\t\n" +
+                "SELECT \n" +
+                "count(*) as all_attemps,\n" +
                 "count(*) filter (where priority = 1) as higth_priority,\n" +
                 "count(*) filter (where priority <> 1) as middle_priority,\n" +
-                "date_time as \"dateTime\"\n" +
-                "FROM (\n" +
-                "    \t   SELECT DISTINCT ON (t.id, ph.phone)\n" +
-                "\t\t\t    t.id AS task, ph.phone, t.priority, date_trunc('minute',(cd.datetime + ph.gmt * INTERVAL '1 hour')) as date_time\n" +
+                "date_time_t as \"dateTime\"\n" +
+                "\tFROM(\n" +
+                "\tSELECT DISTINCT ON (t.id, ph.phone)\n" +
+                "\t\t\t    t.id AS task, ph.phone, t.remark, cd.id AS contact_date, t.priority,\n" +
+                "\t\t\t\t\tcd.datetime::time + coalesce(ph.gmt, 3) * INTERVAL '1 hour' - INTERVAL '3 hours',\n" +
+                "\t\t\t\t\tcd.datetime,\n" +
+                "\t\t \t\t\tph.gmt,\n" +
+                "\t\t\t\t\tcd.datetime + coalesce(ph.gmt, 3) * INTERVAL '1 hour' - INTERVAL '3 hours' as dt,\n" +
+                "\t\t \t\t\tcase\n" +
+                "\t\t\t\t\twhen  t.priority = 1 then date_trunc('minute', cd.datetime)\n" +
+                "\t\t\t\t\twhen  t.priority <> 1 \n" +
+                "\t\t\t\t\t\tand (cd.datetime::time + coalesce(ph.gmt, 3) * INTERVAL '1 hour' - INTERVAL '3 hours') between '09:00' and '21:00'\n" +
+                "\t\t\t\t\t\tthen cd.datetime\n" +
+                "\t\t\t\t\twhen  t.priority <> 1 \n" +
+                "\t\t\t\t\t\tand (cd.datetime + coalesce(ph.gmt, 3) * INTERVAL '1 hour' - INTERVAL '3 hours') < now()::date + INTERVAL '9 hour'\n" +
+                "\t\t\t\t\t\t--then cd.datetime + '09:00' - (cd.datetime::time + coalesce(ph.gmt, 3) * INTERVAL '1 hour' - INTERVAL '3 hours')\n" +
+                "\t\t \t\t\t\tthen now()::date + INTERVAL '9 hour' -  coalesce(ph.gmt, 3) * INTERVAL '1 hour' + INTERVAL '3 hours'\n" +
+                "\t\t\t\t\telse '2021-10-10' end as date_time_t\n" +
                 "\t\t    FROM\n" +
                 "\t\t\t    tasks t\n" +
                 "\t\t\t    JOIN pnr p ON (t.id = p.task)\n" +
@@ -21,14 +37,10 @@ public class StatementProvider {
                 "\t\t\t    t.status = 4\n" +
                 "\t\t\t    AND p.pass_status NOT IN (5,6,7)\n" +
                 "\t\t\t    AND p.list_status NOT IN (3,4)\n" +
-                "\t\t\t    /*AND(\n" +
-                "\t\t\t      t.priority = 1\n" +
-                "\t\t\t      OR NOW()::time + ph.gmt * INTERVAL '1 hour' - INTERVAL '3 hours' BETWEEN '09:00' AND '21:00'\n" +
-                "\t\t\t      OR (ph.gmt IS NULL AND NOW()::time BETWEEN '09:00' AND '21:00')\n" +
-                "\t\t\t    )*/\n" +
                 "\t\t\t    AND (NOT ph.is_completed OR ph.is_completed IS NULL)\n" +
                 "\t\t\t    AND NOT p.is_test\n" +
-                "\t\t\t    AND (cd.datetime + ph.gmt * INTERVAL '1 hour')::date = now()::date\n" +
+                "   \t\t\t    AND cd.datetime::date between now()::date - INTERVAL '1 day' and now()::date \n" +
+                "\t\t\t\t--AND cd.datetime::date between '2021-09-02 00:00:00' and '2021-09-03 00:00:00'\n" +
                 "\t\t\t    AND cd.id NOT IN (\n" +
                 "\t\t\t\t    SELECT co.contact_date\n" +
                 "    \t\t\t\tFROM\n" +
@@ -38,10 +50,9 @@ public class StatementProvider {
                 "    \t\t\t\t   ph.phone = co.phone\n" +
                 "    \t\t\t\t   AND cd2.task = t.id\n" +
                 "\t\t\t    )\n" +
-                "\t\t\t\t\n" +
-                "\t\n" +
-                "     \t) main\n" +
-                "\t\tgroup by priority, date_time";
+                "     \t) main group by priority, date_time_t\n" +
+                "                order by date_time_t\n" +
+                "\t\t";
     }
 
     //language=PostgreSQL

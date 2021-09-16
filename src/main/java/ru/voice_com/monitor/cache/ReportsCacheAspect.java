@@ -8,7 +8,6 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import ru.voice_com.monitor.cache.aspect.UseReportArchive;
 import ru.voice_com.monitor.services.ReportsArchiveService;
@@ -16,6 +15,7 @@ import ru.voice_com.monitor.utils.ReportsProperties;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 @Aspect
@@ -32,20 +32,31 @@ public class ReportsCacheAspect {
     }
 
     @Pointcut("@annotation(ru.voice_com.monitor.cache.aspect.UseReportArchive) && args(request,..)")
-    public void callHandleServletRequest(Map<String, String> request) {
+    public void callHandlerServletRequest(Map<String, String> request) {
+    }
+
+
+    @Pointcut("@annotation(ru.voice_com.monitor.cache.aspect.UseReportArchive)")
+    public void callHandlerEmptyServletRequest() {
+    }
+
+
+    @Around(value = "callHandlerEmptyServletRequest()")
+    public Object aroundReportRequest(ProceedingJoinPoint joinPoint) throws Throwable {
+        return aroundReportRequest(joinPoint, new HashMap<>());
     }
 
     /*
     If requests for current date request, then get data from cache archive, otherwise pass request further
      */
-    @Around(value = "callHandleServletRequest(request)")
+    @Around(value = "callHandlerServletRequest(request)")
     public Object aroundReportRequest(ProceedingJoinPoint joinPoint, Map<String, String> request) throws Throwable {
-        String reportName = reportsProperties.getPropValue(getReportsName(joinPoint), String.class) ;
+        String reportName = reportsProperties.getPropValue(getReportsName(joinPoint), String.class);
         LocalDateTime reportDate = getReportsDateTime(joinPoint, request);
         logger.info("Requesting method: {} for report date = ", reportName, reportDate.toString());
-        if(reportDate.equals(reportsProperties.getCurrentStartDate())) {
+        if (reportDate.equals(reportsProperties.getCurrentStartDate())) {
             return reportsArchiveService.getReport(reportName, reportDate);
-        }else{
+        } else {
             return joinPoint.proceed();
         }
     }

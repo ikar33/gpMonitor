@@ -15,7 +15,7 @@ public class ReportsArchiveService {
 
     private static Map<Integer, ResponseEntity> reportsArchive = new HashMap<>();
 
-    public void addReportsResponse(CommonStatisticModel commonStatisticModel, String reportName, LocalDateTime localDateTime) {
+    public void addReportsResponse(Object commonStatisticModel, String reportName, LocalDateTime localDateTime) {
         Integer reportsHashCode = Objects.hash(reportName, localDateTime);
         reportsArchive.put(reportsHashCode, ResponseEntity.ok(commonStatisticModel));
     }

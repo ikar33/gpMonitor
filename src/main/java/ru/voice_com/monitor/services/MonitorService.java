@@ -47,6 +47,7 @@ public class MonitorService implements IMonitorService {
     public CommonStatisticModel callsDailyPlan() {
         CommonStatisticModel commonStatisticModel = new CommonStatisticModel();
         List<Map<String, Object>> requestResult = this.aeroflotRepository.callsDailyPlan();
+        commonStatisticModel.addFieldsLegend("all_attemps", "Все попытки");
         commonStatisticModel.addFieldsLegend("higth_priority", "Задачи с высоким приоритетом");
         commonStatisticModel.addFieldsLegend("middle_priority", "Задачи с средним приоритетом");
         commonStatisticModel.setValues(requestResult);
